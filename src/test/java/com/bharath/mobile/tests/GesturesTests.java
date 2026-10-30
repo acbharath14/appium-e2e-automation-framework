@@ -1,0 +1,52 @@
+package com.bharath.mobile.tests;
+
+import com.bharath.mobile.base.BaseTest;
+import com.bharath.mobile.pages.LoginPage;
+import com.bharath.mobile.pages.ProductsPage;
+import com.bharath.mobile.utils.Gestures;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * Gestures and app-state behavior: scrolling and background/foreground.
+ */
+class GesturesTests extends BaseTest {
+
+    @BeforeEach
+    void login() {
+        new LoginPage(driver).loginAs("standard_user", "secret_sauce");
+    }
+
+    @Test
+    @DisplayName("scrolls down and back up without losing the product list")
+    void scrollDownAndUpKeepsList() {
+        ProductsPage products = new ProductsPage(driver);
+        assertTrue(products.isDisplayed());
+
+        Gestures.scrollDown(driver);
+        Gestures.scrollUp(driver);
+
+        assertTrue(products.isDisplayed(),
+                "expected the product list to still be showing after scrolling");
+    }
+
+    @Test
+    @DisplayName("keeps the cart after backgrounding and foregrounding the app")
+    void backgroundForegroundKeepsCart() {
+        ProductsPage products = new ProductsPage(driver);
+        products.addToCart("Sauce Labs Backpack");
+        assertEquals(1, products.cartBadgeCount());
+
+        // Background the app for 3 seconds, then bring it back. The cart is
+        // server/session state in this app, so it must survive.
+        ((io.appium.java_client.InteractsWithApps) driver)
+                .runAppInBackground(java.time.Duration.ofSeconds(3));
+
+        assertEquals(1, new ProductsPage(driver).cartBadgeCount(),
+                "expected the cart badge to survive background/foreground");
+    }
+}

@@ -1,0 +1,25 @@
+# Build output
+target/
+
+# App binaries (downloaded by scripts/preflight.py, never committed)
+apps/*.apk
+apps/*.zip
+apps/*.app
+!apps/.gitkeep
+
+# Allure
+allure-results/
+allure-report/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.class
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Appium / emulator state
+*.log
