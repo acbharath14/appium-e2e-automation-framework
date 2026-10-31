@@ -120,24 +120,29 @@ public class ProductsPage {
      */
     public void openProductDetails(String productName) {
         scrollToProduct(productName);
-        // Find the title element with matching text (platform-agnostic via getText)
-        List<WebElement> titles = driver.findElements(productNames);
-        WebElement targetTitle = null;
-        for (WebElement t : titles) {
-            if (productName.equals(t.getText())) {
-                targetTitle = t;
-                break;
-            }
-        }
-        if (targetTitle == null) {
-            throw new java.util.NoSuchElementException("Product title not found: " + productName);
-        }
         // Navigate to the clickable ancestor container.
         // Android: filter by @clickable='true' (immediate parent is not clickable).
         // iOS: take the first ancestor container (verify via dump on first iOS run).
         String ancestorXPath = "./ancestor::" + Platform.container()
                 + (Platform.isIOS() ? "[1]" : "[@clickable='true'][1]");
-        WebElement detailsButton = targetTitle.findElement(AppiumBy.xpath(ancestorXPath));
+        // The title TextView often lands in the tree before its clickable
+        // wrapper is attached (React Native render timing after a scroll), so
+        // a single-shot findElement can race it — this passed on a warm
+        // emulator and failed on a cold one. Poll until the ancestor appears,
+        // re-finding the title on every poll so a half-rendered row can't go
+        // stale underneath us.
+        WebElement detailsButton = Waits.until(driver, d -> {
+            for (WebElement t : d.findElements(productNames)) {
+                if (productName.equals(t.getText())) {
+                    try {
+                        return t.findElement(AppiumBy.xpath(ancestorXPath));
+                    } catch (org.openqa.selenium.NoSuchElementException e) {
+                        return null; // wrapper not attached yet — keep polling
+                    }
+                }
+            }
+            return null;
+        });
         detailsButton.click();
     }
 

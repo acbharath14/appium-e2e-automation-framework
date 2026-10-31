@@ -2,6 +2,7 @@ package com.bharath.mobile.utils;
 
 import io.appium.java_client.AppiumDriver;
 import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -42,5 +43,15 @@ public final class Waits {
     public static WebElement visible(AppiumDriver driver, By locator, Duration timeout) {
         return new WebDriverWait(driver, timeout)
                 .until(ExpectedConditions.visibilityOfElementLocated(locator));
+    }
+
+    /**
+     * Waits until a custom condition yields a non-null element. For lookups
+     * that need more than a plain locator — e.g. finding a child element off
+     * a freshly re-located parent on every poll.
+     */
+    public static WebElement until(AppiumDriver driver,
+            java.util.function.Function<WebDriver, WebElement> condition) {
+        return new WebDriverWait(driver, DEFAULT_TIMEOUT).until(condition);
     }
 }
