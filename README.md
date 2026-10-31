@@ -124,29 +124,34 @@ Triage happens in the report, not in terminal output.
 ## CI
 
 `.github/workflows/e2e.yml` runs the **Android** suite on GitHub Actions on
-every push and pull request to `main`, on **BrowserStack App Automate**
-(real cloud devices — Google Pixel 7, Android 14). The shared-runner
-emulator path was tried and abandoned: cold boots took 10–16 minutes and
-every adb/Appium operation timed out, which is the known weakness of
-emulators on shared cloud VMs. The workflow:
+every push and pull request to `main`, on a **self-hosted runner on the
+iMac** (`runs-on: [self-hosted, macos, imac]`). The workflow:
 
-1. Runs `python3 scripts/preflight.py --app-only` — only downloads the
-   sample app into `apps/` (gitignored); no local Appium server, drivers,
-   or emulator, because the tests talk directly to BrowserStack's hub.
-2. Uploads the APK to BrowserStack via the `app-automate/upload` REST API
-   and captures the `bs://` app URL.
-3. Runs `mvn -B test -Dplatform=browserstack` with the BrowserStack
-   credentials and app URL. `DriverFactory` connects to
-   `hub-cloud.browserstack.com` with the device/os/app capabilities plus
-   `bstack:options` (project, build, session names).
-4. Uploads the Allure results and the JaCoCo report as artifacts (always,
+1. Runs `python3 scripts/preflight.py` (full mode) — verifies the Android
+   SDK, the `Pixel_7_API_34` AVD, the Appium server and drivers, and
+   downloads the sample app; idempotent, installs only what's missing and
+   starts the Appium server if it isn't listening.
+2. Runs `mvn -B test -Dplatform=android`. `DriverFactory` uses an
+   already-running emulator if one is up, otherwise boots the AVD itself.
+3. Uploads the Allure results and the JaCoCo report as artifacts (always,
    even on failure).
 
-**One-time setup:** create two repository secrets (Settings → Secrets and
-variables → Actions): `BROWSERSTACK_USERNAME` and `BROWSERSTACK_ACCESS_KEY`
-(from your BrowserStack account's App Automate settings). The credentials
-are passed as system properties at runtime and are masked in logs — they
-are never committed.
+**One-time runner setup** (on the iMac, as your normal user — not root,
+so it sees your `~/.android` AVDs and SDK): repo → Settings → Actions →
+Runners → New self-hosted runner → macOS, then run the download/configure
+commands it shows, adding the `imac` label at `./config.sh` time. Start
+with `./run.sh` to verify, then keep it running (a `~/Library/LaunchAgents`
+plist works for auto-start on login). The iMac must be on, logged in, and
+awake — jobs queue until it is.
+
+**Why not a cloud emulator:** tried on `ubuntu-latest` with
+`reactivecircus/android-emulator-runner` and retired — cold boots took
+10–16 minutes and every adb/Appium operation timed out on the shared
+runners. **Why not a device farm:** Firebase Test Lab doesn't support
+Appium (and shuts down Sep 2027); BrowserStack/Sauce Labs need a paid plan
+for a private repo. `DriverFactory` still has a `-Dplatform=browserstack`
+mode for manual cloud runs (credentials via `-Dbrowserstack.user/key`,
+app via `-Dbrowserstack.app=bs://...`).
 
 **iOS stays local-only**, deliberately: macOS runners bill at 10x per minute
 and every run would download the ~9GB simulator runtime, for a suite that is
