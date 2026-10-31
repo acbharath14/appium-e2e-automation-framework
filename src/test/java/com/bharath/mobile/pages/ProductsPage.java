@@ -120,33 +120,30 @@ public class ProductsPage {
      */
     public void openProductDetails(String productName) {
         scrollToProduct(productName);
-        // Navigate to the clickable ancestor container.
-        // Android: filter by @clickable='true' (immediate parent is not clickable).
-        // iOS: take the first ancestor container (verify via dump on first iOS run).
-        String ancestorXPath = "./ancestor::" + Platform.container()
-                + (Platform.isIOS() ? "[1]" : "[@clickable='true'][1]");
-        // The title TextView often lands in the tree before its clickable
-        // wrapper is attached (React Native render timing after a scroll), so
-        // a single-shot findElement can race it. Poll until the ancestor
-        // appears, re-finding the title on every poll so a half-rendered row
-        // can't go stale underneath us.
-        WebElement detailsButton;
+        // Find the tappable row container in ONE atomic lookup: the clickable
+        // ViewGroup containing this product's title. The previous approach —
+        // find the title, then walk its ancestor:: axis — failed repeatedly
+        // even though the dump shows the clickable parent exists: across
+        // React Native re-renders the title node the driver holds and the
+        // tree the ancestor query evaluates can disagree. A single predicate
+        // sees one consistent tree, so the two can never skew.
+        By rowContainer;
+        if (Platform.isIOS()) {
+            // iOS product-details navigation is skipped in tests (XCUITest
+            // lacks ancestor::); this branch is structural parity only.
+            rowContainer = AppiumBy.xpath("//" + Platform.container()
+                    + "[.//*[@name='test-Item title' and @label='"
+                    + productName + "']]");
+        } else {
+            rowContainer = AppiumBy.xpath("//" + Platform.container()
+                    + "[@clickable='true']"
+                    + "[.//*[@content-desc='test-Item title' and @text='"
+                    + productName + "']]");
+        }
         try {
-            detailsButton = Waits.until(driver, d -> {
-                for (WebElement t : d.findElements(productNames)) {
-                    if (productName.equals(t.getText())) {
-                        try {
-                            return t.findElement(AppiumBy.xpath(ancestorXPath));
-                        } catch (org.openqa.selenium.NoSuchElementException e) {
-                            return null; // wrapper not attached yet — keep polling
-                        }
-                    }
-                }
-                return null;
-            });
+            Waits.clickable(driver, rowContainer).click();
         } catch (org.openqa.selenium.TimeoutException e) {
-            // Dump the tree so a failure carries its own evidence: the dump
-            // shows the title's real ancestor chain at failure time.
+            // Dump the tree so a failure carries its own evidence.
             // Absolute path: the forked test JVM's working directory is not
             // guaranteed to be the repo root, so never rely on a relative one.
             String dumpPath = System.getProperty("user.dir")
@@ -159,10 +156,9 @@ public class ProductsPage {
                 dumpPath = "dump failed: " + io.getMessage();
             }
             throw new org.openqa.selenium.TimeoutException(
-                    "clickable ancestor for '" + productName
+                    "product row container for '" + productName
                             + "' never appeared; page source at " + dumpPath, e);
         }
-        detailsButton.click();
     }
 
     /**
