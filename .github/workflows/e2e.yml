@@ -54,3 +54,47 @@ jobs:
         with:
           name: jacoco-report-android
           path: target/site/jacoco
+
+  ios:
+    # Same self-hosted iMac: no per-minute billing and the iOS 18.5
+    # simulator runtime is already installed, so the old hosted-macOS
+    # objections don't apply. Queues behind the android job on the
+    # single runner.
+    runs-on: [self-hosted, macos, imac]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Add MacPorts to PATH
+        run: echo "/opt/local/bin" >> $GITHUB_PATH
+
+      - name: Preflight (Appium server, drivers, sample app, simulator)
+        # Idempotent. The xcuitest driver and the iPhone 16 simulator
+        # runtime are already on this iMac.
+        run: python3 scripts/preflight.py
+
+      - name: Run iOS suite
+        # 9 pass, 6 intentionally skipped (the app's own accessibility
+        # gaps — see README "iOS limitations"). The xcuitest driver boots
+        # the iPhone 16 simulator itself.
+        run: mvn -B test -Dplatform=ios
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-ios
+          path: target/allure-results
+
+      - name: Upload JaCoCo report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report-ios
+          path: target/site/jacoco
