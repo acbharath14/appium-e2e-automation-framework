@@ -143,6 +143,28 @@ claim.)
 | iOS: `platformVersion` mismatch | Match it to an installed simulator runtime (`xcrun simctl list runtimes`). |
 | Flaky first test after boot | The emulator is still settling; the `@BeforeAll` driver start plus explicit waits absorb it. Don't add sleeps. |
 
+## iOS limitations (v2.7.1)
+
+The iOS app (v2.7.1) has accessibility gaps that limit automation:
+
+- **Cart button not tappable**: `test-Cart` has `accessible=false`. XCUITest
+  cannot tap non-accessible elements — 7 methods tried (direct click, W3C
+  Actions, `mobile: tap`, parent-wrapper tap, badge-child tap). Manual taps
+  work (they bypass XCUITest hit-testing). Cart-navigation tests
+  (`CartTests.removeProductFromCart`, all `CheckoutTests`) are skipped on iOS
+  via `Assumptions.assumeFalse(Platform.isIOS(), ...)`.
+- **Product-details ancestor**: XCUITest does not support the `ancestor::`
+  XPath axis. `CatalogTests.tappingProductOpensDetails` is skipped on iOS.
+- **Badge count**: On iOS the count is in the `label` attribute of `test-Cart`
+  (e.g. `label="1"`), not a child `StaticText`. `ProductsPage.cartBadgeCount()`
+  reads the attribute on iOS.
+- **Deep links**: The app registers `swaglabs://` with React Navigation paths
+  (`cart/:ids`, etc.), but `mobile: deepLink` to `swaglabs://cart` does not
+  navigate (the `:ids` param format is unknown).
+
+Working on iOS (9/15): all `LoginTests` (3), cart badge tests (2),
+`GesturesTests` (2), catalog tests except product-details (2).
+
 ## What's next (documented, not built)
 
 - **BrowserStack App Automate** as the cloud path: same tests, capabilities
