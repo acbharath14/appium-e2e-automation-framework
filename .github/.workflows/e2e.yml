@@ -1,0 +1,59 @@
+# Runs the Android suite on an emulator. iOS stays local-only by design
+# (macOS runner cost/speed) — see the README.
+
+name: e2e
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Set up Node 20 (Appium server)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Preflight (Appium server, drivers, sample app)
+        run: |
+          python3 scripts/preflight.py
+          # CI provides the emulator itself, so the AVD check is expected
+          # to report missing — the runner creates it below.
+
+      - name: Run Android suite on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          avd-name: Pixel_7_API_34
+          script: mvn -B test -Dplatform=android
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-android
+          path: target/allure-results
+
+      - name: Upload JaCoCo report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report-android
+          path: target/site/jacoco
