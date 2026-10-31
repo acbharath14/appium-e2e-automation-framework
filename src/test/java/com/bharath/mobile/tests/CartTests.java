@@ -9,6 +9,8 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -16,6 +18,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Cart behavior: add, remove, and the badge count.
  */
+@Epic("Swag Labs Mobile")
+@Feature("Cart")
 class CartTests extends BaseTest {
 
     @BeforeEach

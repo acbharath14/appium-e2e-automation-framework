@@ -7,6 +7,8 @@ import com.bharath.mobile.utils.Gestures;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -14,6 +16,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Gestures and app-state behavior: scrolling and background/foreground.
  */
+@Epic("Swag Labs Mobile")
+@Feature("Gestures")
 class GesturesTests extends BaseTest {
 
     @BeforeEach

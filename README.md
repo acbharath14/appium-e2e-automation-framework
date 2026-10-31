@@ -120,18 +120,17 @@ Triage happens in the report, not in terminal output.
 
 ## CI
 
-`.github/workflows/e2e.yml` runs the **Android** suite on GitHub Actions
-(`ubuntu-latest` + `reactivecircus/android-emulator-runner`, API 34),
-uploads the Allure results and the JaCoCo report as artifacts.
+`.github/workflows/e2e.yml` is **ready to paste, not yet active** — the workflow
+file lives at `~/workspace/your_files/appium-e2e-automation-framework-ci.yml`,
+paste it via the GitHub web UI (the automation app can't push
+`.github/workflows/`). Once pasted, it will run the **Android** suite on GitHub
+Actions (`ubuntu-latest` + `reactivecircus/android-emulator-runner`, API 34),
+uploading the Allure results and the JaCoCo report as artifacts.
 
 **iOS stays local-only**, deliberately: macOS runners are slow and
 expensive, and claiming iOS-on-CI without it would be aspirational. The
 README would rather be honest than impressive. Run it locally with
 `mvn test -Dplatform=ios`.
-
-(The workflow file is pasted via the GitHub web UI — the automation app
-can't push `.github/workflows/` — so it lives ready-to-paste, not as a
-claim.)
 
 ## Troubleshooting
 
@@ -142,6 +141,36 @@ claim.)
 | `Connection refused :4723` | No Appium server running — preflight starts one; or run `appium` by hand. |
 | iOS: `platformVersion` mismatch | Match it to an installed simulator runtime (`xcrun simctl list runtimes`). |
 | Flaky first test after boot | The emulator is still settling; the `@BeforeAll` driver start plus explicit waits absorb it. Don't add sleeps. |
+| Appium server can't find Android SDK | The server inherits env from the shell that started it — launch `appium` from a terminal with `ANDROID_HOME` exported. If it was started from an IDE or a bare shell, `kill $(lsof -ti:4723)` and relaunch from a proper terminal. |
+| Android app never launches (stuck on splash) | Missing `appium:appWaitActivity` — the capability is `com.swaglabsmobileapp.*` in `android.properties`. Without it Appium gives up waiting for the main activity. |
+| Properties file: `appium:` keys ignored | `java.util.Properties` treats unescaped `:` as a key separator — write them as `appium\:automationName` in the `.properties` files. |
+| `NoSuchMethodError` from Selenium classes | `selenium-support` must match the Selenium version bundled in `java-client` 11.x — it's pinned explicitly in `pom.xml` (test scope). Don't bump one without the other. |
+| Background/foreground test flaky on slow machines | `GesturesTests.backgroundForegroundKeepsCart` backgrounds the app for 3s. On a loaded host the relaunch can exceed the implicit wait — the test is timing-sensitive by nature, not a logic bug. Re-run it in isolation before investigating. |
+
+## Locator notes (v2.7.1)
+
+Swag Labs 2.7.1 is a React Native app; testIDs are built at runtime as
+`'test-' + i18nKey`. Verified via uiautomator dumps (Android):
+
+- Login: `test-Username`, `test-Password`, `test-LOGIN`. The error container
+  `test-Error message` is a `ViewGroup` with empty text — the message lives in
+  a child `TextView`.
+- Products: `test-Menu`, `test-Cart`, `test-PRODUCTS`, per-row `test-Item`
+  (not clickable — details open via the clickable ancestor `ViewGroup` of the
+  title `TextView`), `test-Item title`, `test-Price`, `test-ADD TO CART`.
+  There is **no** `test-Item-<name>` id. The cart badge count is a child
+  `TextView` inside `test-Cart`; `test-Cart` itself is not clickable — the
+  framework taps its bounds center via W3C Actions.
+- Cart: header `test-Cart Content`, `test-CHECKOUT`, `test-CONTINUE SHOPPING`,
+  `test-REMOVE`, `test-Amount`, `test-Description`.
+- Checkout info: `test-Checkout: Your Info`, `test-First Name`,
+  `test-Last Name`, `test-Zip/Postal Code`, `test-CONTINUE`, `test-CANCEL`.
+- Overview: `test-CHECKOUT: OVERVIEW`; the totals have **no** test-ids
+  (plain `TextView`s like `"Item total: $29.99"`) — located by text. `test-FINISH`
+  sits below the fold; the page object scrolls before tapping it.
+- Details: marker `test-Inventory item page`, `test-BACK TO PRODUCTS`.
+  `name()` returns the first non-empty `TextView` that isn't a `$` price and
+  isn't all-uppercase.
 
 ## iOS limitations (v2.7.1)
 

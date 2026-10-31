@@ -12,12 +12,16 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Checkout behavior: form validation, overview totals, completion, cancel.
  */
+@Epic("Swag Labs Mobile")
+@Feature("Checkout")
 class CheckoutTests extends BaseTest {
 
     @BeforeEach
