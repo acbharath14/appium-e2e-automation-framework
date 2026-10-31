@@ -93,17 +93,25 @@ public class ProductsPage {
      * the overlapping clickable ViewGroup at the same bounds. Taps the center
      * of the test-Cart bounds via W3C Actions.
      * v2.7.1 iOS: test-Cart is accessible=false so direct tap fails, and
-     * XCUITest does not support parent:: axis. Find the wrapper (the Other
-     * containing test-Cart) from the root and tap its center.
+     * XCUITest does not support parent:: axis. Use mobile: tap on the
+     * accessible badge child (XCUITest-native tap).
      */
     public void openCart() {
         WebElement cart = Waits.visible(driver, cartBadge);
         if (Platform.isIOS()) {
-            // Find wrapper: the Other that contains test-Cart (child axis, not parent)
-            WebElement wrapper = driver.findElement(AppiumBy.xpath(
-                    "//" + Platform.container() + "[./" + Platform.container()
-                            + "[@name='test-Cart']]"));
-            org.openqa.selenium.Rectangle rect = wrapper.getRect();
+            // Find the accessible badge child and tap via mobile: tap
+            List<WebElement> accessibleChildren = cart.findElements(AppiumBy.xpath(
+                    ".//" + Platform.container() + "[@accessible='true']"));
+            if (!accessibleChildren.isEmpty()) {
+                WebElement badge = accessibleChildren.get(0);
+                // Use mobile: tap for XCUITest-native tap
+                java.util.Map<String, Object> params = new java.util.HashMap<>();
+                params.put("elementId", ((org.openqa.selenium.remote.RemoteWebElement) badge).getId());
+                driver.executeScript("mobile: tap", params);
+                return;
+            }
+            // Fallback: W3C tap at cart center
+            org.openqa.selenium.Rectangle rect = cart.getRect();
             int centerX = rect.getX() + rect.getWidth() / 2;
             int centerY = rect.getY() + rect.getHeight() / 2;
             Gestures.tapAt(driver, centerX, centerY);
