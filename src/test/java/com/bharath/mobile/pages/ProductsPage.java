@@ -59,16 +59,26 @@ public class ProductsPage {
 
     /**
      * Number shown on the cart badge; 0 when the badge is absent.
-     * v2.7.1: the count is in a child TextView of the test-Cart container,
-     * not in the container's own text (which is always empty).
+     * v2.7.1 Android: the count is in a child TextView of the test-Cart
+     * container, not in the container's own text (which is always empty).
+     * v2.7.1 iOS: the count is in the label attribute of test-Cart itself
+     * (e.g. label="1"); the badge is a child XCUIElementTypeOther.
      */
     public int cartBadgeCount() {
         List<WebElement> badges = driver.findElements(cartBadge);
         if (badges.isEmpty()) {
             return 0;
         }
+        WebElement badge = badges.get(0);
+        if (Platform.isIOS()) {
+            String label = badge.getAttribute("label");
+            if (label == null || !label.trim().matches("\\d+")) {
+                return 0;
+            }
+            return Integer.parseInt(label.trim());
+        }
         List<WebElement> countElements =
-                badges.get(0).findElements(AppiumBy.xpath(".//" + Platform.textElement()));
+                badge.findElements(AppiumBy.xpath(".//" + Platform.textElement()));
         if (countElements.isEmpty()) {
             return 0;
         }
@@ -77,13 +87,28 @@ public class ProductsPage {
     }
 
     /**
-     * Opens the cart. v2.7.1: the test-Cart container is not clickable and
-     * has no clickable ancestor/descendant with a stable locator; the tap
-     * target is the overlapping clickable ViewGroup at the same bounds.
-     * Taps the center of the test-Cart bounds via W3C Actions.
+     * Opens the cart.
+     * v2.7.1 Android: the test-Cart container is not clickable and has no
+     * clickable ancestor/descendant with a stable locator; the tap target is
+     * the overlapping clickable ViewGroup at the same bounds. Taps the center
+     * of the test-Cart bounds via W3C Actions.
+     * v2.7.1 iOS: test-Cart has an accessible child (accessible="true") that
+     * can be tapped directly; coordinate tap is unreliable on iOS.
      */
     public void openCart() {
         WebElement cart = Waits.visible(driver, cartBadge);
+        if (Platform.isIOS()) {
+            // Tap the accessible badge child directly
+            List<WebElement> accessibleChildren = cart.findElements(
+                    AppiumBy.xpath(".//" + Platform.container() + "[@accessible='true']"));
+            if (!accessibleChildren.isEmpty()) {
+                accessibleChildren.get(0).click();
+                return;
+            }
+            // Fallback: tap the container itself
+            cart.click();
+            return;
+        }
         org.openqa.selenium.Rectangle rect = cart.getRect();
         int centerX = rect.getX() + rect.getWidth() / 2;
         int centerY = rect.getY() + rect.getHeight() / 2;
