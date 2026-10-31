@@ -61,6 +61,10 @@ public final class DriverFactory {
                             .setApp(resolved.toString())
                             .setNewCommandTimeout(Duration.ofSeconds(
                                     Long.parseLong(caps.getProperty("appium:newCommandTimeout"))));
+                    String appWaitActivity = caps.getProperty("appium:appWaitActivity");
+                    if (appWaitActivity != null && !appWaitActivity.isBlank()) {
+                        options.setAppWaitActivity(appWaitActivity);
+                    }
                     return new AndroidDriver(new URI(serverUrl).toURL(), options);
                 }
                 case "ios": {
