@@ -63,11 +63,17 @@ public class CheckoutOverviewPage {
     }
 
     private void scrollToButton(By button) {
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 8; i++) {
             if (!driver.findElements(button).isEmpty()) {
                 return;
             }
             Gestures.scrollDown(driver);
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
         }
     }
 }

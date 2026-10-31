@@ -12,7 +12,10 @@ public class CheckoutCompletePage {
 
     private final AppiumDriver driver;
 
-    private final By thankYouHeader = AppiumBy.accessibilityId("test-THANK YOU FOR YOUR ORDER");
+    // v2.7.1: the exact header id is unconfirmed; match by the visible
+    // "THANK YOU" text instead of a hardcoded accessibility id.
+    private final By thankYouHeader =
+            AppiumBy.xpath("//android.widget.TextView[contains(@text, 'THANK YOU')]");
     private final By backHomeButton = AppiumBy.accessibilityId("test-BACK HOME");
 
     public CheckoutCompletePage(AppiumDriver driver) {
