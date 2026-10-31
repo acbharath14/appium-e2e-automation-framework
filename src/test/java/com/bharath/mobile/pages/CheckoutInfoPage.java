@@ -1,5 +1,6 @@
 package com.bharath.mobile.pages;
 
+import com.bharath.mobile.utils.Platform;
 import com.bharath.mobile.utils.Waits;
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.AppiumDriver;
@@ -45,7 +46,7 @@ public class CheckoutInfoPage {
     public String errorText() {
         WebElement container = Waits.visible(driver, errorMessage);
         List<WebElement> textElements =
-                container.findElements(AppiumBy.xpath(".//android.widget.TextView"));
+                container.findElements(AppiumBy.xpath(".//" + Platform.textElement()));
         if (textElements.isEmpty()) {
             return "";
         }

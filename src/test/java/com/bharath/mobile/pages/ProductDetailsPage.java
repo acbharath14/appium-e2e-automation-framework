@@ -1,5 +1,6 @@
 package com.bharath.mobile.pages;
 
+import com.bharath.mobile.utils.Platform;
 import com.bharath.mobile.utils.Waits;
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.AppiumDriver;
@@ -42,7 +43,7 @@ public class ProductDetailsPage {
     public String name() {
         Waits.visible(driver, detailsMarker);
         List<WebElement> texts =
-                driver.findElements(AppiumBy.xpath("//android.widget.TextView"));
+                driver.findElements(AppiumBy.xpath("//" + Platform.textElement()));
         for (WebElement t : texts) {
             String s = t.getText();
             if (s == null) {
@@ -65,7 +66,7 @@ public class ProductDetailsPage {
     public String price() {
         WebElement container = Waits.visible(driver, priceContainer);
         List<WebElement> amounts =
-                container.findElements(AppiumBy.xpath(".//android.widget.TextView"));
+                container.findElements(AppiumBy.xpath(".//" + Platform.textElement()));
         if (amounts.isEmpty()) {
             return "";
         }

@@ -1,6 +1,7 @@
 package com.bharath.mobile.pages;
 
 import com.bharath.mobile.utils.Gestures;
+import com.bharath.mobile.utils.Platform;
 import com.bharath.mobile.utils.Waits;
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.AppiumDriver;
@@ -67,7 +68,7 @@ public class ProductsPage {
             return 0;
         }
         List<WebElement> countElements =
-                badges.get(0).findElements(AppiumBy.xpath(".//android.widget.TextView"));
+                badges.get(0).findElements(AppiumBy.xpath(".//" + Platform.textElement()));
         if (countElements.isEmpty()) {
             return 0;
         }
@@ -96,11 +97,25 @@ public class ProductsPage {
      */
     public void openProductDetails(String productName) {
         scrollToProduct(productName);
-        By detailsButton = AppiumBy.xpath(
-                "//android.widget.TextView[@content-desc='test-Item title' and @text='"
-                        + productName + "']" +
-                "/ancestor::android.view.ViewGroup[@clickable='true'][1]");
-        Waits.clickable(driver, detailsButton).click();
+        // Find the title element with matching text (platform-agnostic via getText)
+        List<WebElement> titles = driver.findElements(productNames);
+        WebElement targetTitle = null;
+        for (WebElement t : titles) {
+            if (productName.equals(t.getText())) {
+                targetTitle = t;
+                break;
+            }
+        }
+        if (targetTitle == null) {
+            throw new java.util.NoSuchElementException("Product title not found: " + productName);
+        }
+        // Navigate to the clickable ancestor container.
+        // Android: filter by @clickable='true' (immediate parent is not clickable).
+        // iOS: take the first ancestor container (verify via dump on first iOS run).
+        String ancestorXPath = "./ancestor::" + Platform.container()
+                + (Platform.isIOS() ? "[1]" : "[@clickable='true'][1]");
+        WebElement detailsButton = targetTitle.findElement(AppiumBy.xpath(ancestorXPath));
+        detailsButton.click();
     }
 
     /**
