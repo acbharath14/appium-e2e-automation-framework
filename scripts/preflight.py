@@ -38,11 +38,13 @@ failures = []
 
 
 def run(cmd, timeout=120, **kwargs):
-    """Run a command, returning (ok, stdout). Never raises."""
+    """Run a command, returning (ok, combined output). Never raises."""
     try:
         out = subprocess.run(
             cmd, capture_output=True, text=True, timeout=timeout, **kwargs)
-        return out.returncode == 0, out.stdout.strip()
+        # appium (and npm under it) report errors on stderr — capture both.
+        combined = (out.stdout.strip() + "\n" + out.stderr.strip()).strip()
+        return out.returncode == 0, combined
     except Exception as e:  # missing binary, timeout, ...
         return False, str(e)
 
