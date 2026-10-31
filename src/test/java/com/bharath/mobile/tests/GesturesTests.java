@@ -46,7 +46,26 @@ class GesturesTests extends BaseTest {
         ((io.appium.java_client.InteractsWithApps) driver)
                 .runAppInBackground(java.time.Duration.ofSeconds(3));
 
-        assertEquals(1, new ProductsPage(driver).cartBadgeCount(),
+        // After foreground, the UI may need a moment to restore. Wait for the
+        // products page to be ready before reading the badge.
+        ProductsPage foreground = new ProductsPage(driver);
+        assertTrue(foreground.isDisplayed(),
+                "expected the products list after foregrounding the app");
+        // The badge TextView may lag behind the page render; poll briefly.
+        int badge = 0;
+        for (int i = 0; i < 5; i++) {
+            badge = foreground.cartBadgeCount();
+            if (badge == 1) {
+                break;
+            }
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        assertEquals(1, badge,
                 "expected the cart badge to survive background/foreground");
     }
 }
