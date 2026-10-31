@@ -147,10 +147,14 @@ public class ProductsPage {
         } catch (org.openqa.selenium.TimeoutException e) {
             // Dump the tree so a failure carries its own evidence: the dump
             // shows the title's real ancestor chain at failure time.
-            String dumpPath = "target/product-details-timeout.xml";
+            // Absolute path: the forked test JVM's working directory is not
+            // guaranteed to be the repo root, so never rely on a relative one.
+            String dumpPath = System.getProperty("user.dir")
+                    + "/target/product-details-timeout.xml";
             try {
                 java.nio.file.Files.writeString(
                         java.nio.file.Path.of(dumpPath), driver.getPageSource());
+                System.out.println("PRODUCT-DETAILS DUMP WRITTEN TO: " + dumpPath);
             } catch (Exception io) {
                 dumpPath = "dump failed: " + io.getMessage();
             }
