@@ -43,13 +43,9 @@ jobs:
           profile: pixel_7
           avd-name: Pixel_7_API_34
           emulator-boot-timeout: 1200
-          script: |
-            appium --port 4723 > /tmp/appium.log 2>&1 &
-            for i in $(seq 1 30); do
-              curl -sf http://127.0.0.1:4723/status && break
-              sleep 2
-            done
-            mvn -B test -Dplatform=android
+          # NOTE: the runner executes each script line as a separate `sh -c`,
+          # so this must stay a single line — a multi-line for-loop breaks.
+          script: appium > /tmp/appium.log 2>&1 & for i in $(seq 1 60); do curl -sf http://127.0.0.1:4723/status >/dev/null && break; sleep 2; done; mvn -B test -Dplatform=android
 
       - name: Upload Allure results
         if: always()
