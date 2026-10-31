@@ -37,6 +37,11 @@ public final class DriverFactory {
         // The `app` capability points at apps/ relative to the project root.
         // preflight.py downloads the binaries there; they are never committed.
         String appPath = caps.getProperty("appium:app");
+        if (appPath == null || appPath.isBlank()) {
+            throw new IllegalStateException(
+                    "Missing 'appium:app' in " + platform + ".properties —"
+                            + " keys containing ':' must be escaped as '\\:' in .properties files.");
+        }
         Path resolved = Paths.get(System.getProperty("user.dir"), appPath).toAbsolutePath();
         if (!Files.exists(resolved)) {
             throw new IllegalStateException(
