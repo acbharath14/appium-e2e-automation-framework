@@ -29,10 +29,10 @@ jobs:
           node-version: '20'
 
       - name: Preflight (Appium server, drivers, sample app)
-        run: |
-          python3 scripts/preflight.py
-          # CI provides the emulator itself, so the AVD check is expected
-          # to report missing — the runner creates it below.
+        run: python3 scripts/preflight.py --ci
+        # --ci: the emulator runner below provides the emulator, so the
+        # ANDROID_HOME/AVD checks are skipped; the Appium server is started
+        # in the emulator step so it inherits the runner's ANDROID_SDK_ROOT.
 
       - name: Run Android suite on emulator
         uses: reactivecircus/android-emulator-runner@v2
@@ -42,7 +42,13 @@ jobs:
           arch: x86_64
           profile: pixel_7
           avd-name: Pixel_7_API_34
-          script: mvn -B test -Dplatform=android
+          script: |
+            appium --port 4723 > /tmp/appium.log 2>&1 &
+            for i in $(seq 1 30); do
+              curl -sf http://127.0.0.1:4723/status && break
+              sleep 2
+            done
+            mvn -B test -Dplatform=android
 
       - name: Upload Allure results
         if: always()
