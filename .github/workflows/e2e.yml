@@ -1,6 +1,3 @@
-# Runs the Android suite on an emulator. iOS stays local-only by design
-# (macOS runner cost/speed) — see the README.
-
 name: e2e
 
 on:
@@ -12,7 +9,12 @@ on:
 
 jobs:
   android:
-    runs-on: ubuntu-latest
+    # Self-hosted runner on the iMac (label `imac` added at ./config.sh time).
+    # The iMac must be on, logged in, and awake — jobs queue until it is.
+    runs-on: [self-hosted, macos, imac]
+    env:
+      # Verify on the iMac with: echo $ANDROID_HOME — adjust if different.
+      ANDROID_HOME: /Users/bharatharsikerechandrashekar-imac/Library/Android/sdk
     steps:
       - uses: actions/checkout@v4
 
@@ -23,29 +25,21 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Set up Node 20 (Appium server)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      - name: Add MacPorts to PATH
+        # Maven (and possibly node) live in /opt/local/bin on this iMac,
+        # which is not on a fresh non-interactive shell's PATH.
+        run: echo "/opt/local/bin" >> $GITHUB_PATH
 
-      - name: Preflight (Appium server, drivers, sample app)
-        run: python3 scripts/preflight.py --ci
-        # --ci: the emulator runner below provides the emulator, so the
-        # ANDROID_HOME/AVD checks are skipped; the Appium server is started
-        # in the emulator step so it inherits the runner's ANDROID_SDK_ROOT.
+      - name: Preflight (Appium server, drivers, sample app, emulator)
+        # Full preflight: the iMac has the SDK and the Pixel_7_API_34 AVD.
+        # Idempotent — installs only what's missing, starts the Appium
+        # server if it isn't already listening.
+        run: python3 scripts/preflight.py
 
-      - name: Run Android suite on emulator
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 34
-          target: google_apis
-          arch: x86_64
-          profile: pixel_7
-          avd-name: Pixel_7_API_34
-          emulator-boot-timeout: 1200
-          # NOTE: the runner executes each script line as a separate `sh -c`,
-          # so this must stay a single line — a multi-line for-loop breaks.
-          script: appium > /tmp/appium.log 2>&1 & for i in $(seq 1 60); do curl -sf http://127.0.0.1:4723/status >/dev/null && break; sleep 2; done; mvn -B test -Dplatform=android
+      - name: Run Android suite
+        # DriverFactory uses an already-running emulator if one is up,
+        # otherwise boots the Pixel_7_API_34 AVD itself via Appium.
+        run: mvn -B test -Dplatform=android
 
       - name: Upload Allure results
         if: always()
