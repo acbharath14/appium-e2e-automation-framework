@@ -20,8 +20,9 @@ You'll find ours in `src/test/resources/android.properties` and
 `ios.properties`, one field per line, each explained where it's
 non-obvious.
 
-Two terms: Android has **emulators**, iOS has **simulators**. Both are free,
-and this framework boots them itself — you never start one by hand.
+Two terms: Android has **emulators**, iOS has **simulators**. Both are free.
+If one is already running, the suite uses it; otherwise Appium boots it
+itself — you never start one by hand.
 
 ## The sample app
 
@@ -91,7 +92,9 @@ backgrounding and foregrounding the app keeps the cart.
 ## Project tour
 
 - `src/test/java/com/bharath/mobile/base/DriverFactory.java` — builds the
-  driver from the `.properties` capabilities; resolves the app binary path.
+  driver from the `.properties` capabilities; resolves the app binary path;
+  checks `adb devices` first and uses a running emulator when one is
+  connected, otherwise boots the AVD itself.
 - `src/test/java/com/bharath/mobile/base/BaseTest.java` — lifecycle: one
   driver per test **class** (app launch is expensive), terminate+activate
   reset between tests (fast and deterministic), Allure screenshot on
@@ -120,17 +123,30 @@ Triage happens in the report, not in terminal output.
 
 ## CI
 
-`.github/workflows/e2e.yml` is **ready to paste, not yet active** — the workflow
-file lives at `~/workspace/your_files/appium-e2e-automation-framework-ci.yml`,
-paste it via the GitHub web UI (the automation app can't push
-`.github/workflows/`). Once pasted, it will run the **Android** suite on GitHub
-Actions (`ubuntu-latest` + `reactivecircus/android-emulator-runner`, API 34),
-uploading the Allure results and the JaCoCo report as artifacts.
+`.github/workflows/e2e.yml` runs the **Android** suite on GitHub Actions on
+every push and pull request to `main` (`ubuntu-latest` +
+`reactivecircus/android-emulator-runner`, API 34, Pixel 7 profile). The
+workflow:
 
-**iOS stays local-only**, deliberately: macOS runners are slow and
-expensive, and claiming iOS-on-CI without it would be aspirational. The
-README would rather be honest than impressive. Run it locally with
-`mvn test -Dplatform=ios`.
+1. Runs `python3 scripts/preflight.py --ci` — installs the Appium server and
+   the `uiautomator2` driver, downloads the sample app; skips the emulator
+   checks (the runner provides the emulator next) and the `xcuitest` driver
+   (Linux runners can't run iOS simulators).
+2. Boots the emulator, starts the Appium server **inside the emulator step**
+   so it inherits the runner's `ANDROID_SDK_ROOT`, waits for it to listen,
+   then runs `mvn -B test -Dplatform=android`. `DriverFactory` sees the
+   already-running emulator and uses it instead of booting a second copy.
+3. Uploads the Allure results and the JaCoCo report as artifacts (always,
+   even on failure).
+
+**iOS stays local-only**, deliberately: macOS runners bill at 10x per minute
+and every run would download the ~9GB simulator runtime, for a suite that is
+9 passing tests plus 6 intentional skips (the app's own accessibility gaps).
+Run it locally with `mvn test -Dplatform=ios`.
+
+There is no GitLab CI for this repo, also deliberately: GitHub Actions covers
+the suite, and the iMac's GitLab runner is a Docker executor — an Android
+emulator won't run inside Docker on macOS.
 
 ## Troubleshooting
 
@@ -156,8 +172,10 @@ Swag Labs 2.7.1 is a React Native app; testIDs are built at runtime as
   `test-Error message` is a `ViewGroup` with empty text — the message lives in
   a child `TextView`.
 - Products: `test-Menu`, `test-Cart`, `test-PRODUCTS`, per-row `test-Item`
-  (not clickable — details open via the clickable ancestor `ViewGroup` of the
-  title `TextView`), `test-Item title`, `test-Price`, `test-ADD TO CART`.
+  (not clickable — details open via the clickable `ViewGroup` that contains
+  the title; located with one atomic XPath so the title and its wrapper are
+  always read from the same tree snapshot), `test-Item title`, `test-Price`,
+  `test-ADD TO CART`.
   There is **no** `test-Item-<name>` id. The cart badge count is a child
   `TextView` inside `test-Cart`; `test-Cart` itself is not clickable — the
   framework taps its bounds center via W3C Actions.
