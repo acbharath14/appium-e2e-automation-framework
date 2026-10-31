@@ -99,14 +99,17 @@ public class ProductsPage {
     public void openCart() {
         WebElement cart = Waits.visible(driver, cartBadge);
         if (Platform.isIOS()) {
-            // Find the accessible badge child and tap via mobile: tap
+            // Find the accessible badge child and tap via mobile: tap (XCUITest-native)
             List<WebElement> accessibleChildren = cart.findElements(AppiumBy.xpath(
                     ".//" + Platform.container() + "[@accessible='true']"));
             if (!accessibleChildren.isEmpty()) {
                 WebElement badge = accessibleChildren.get(0);
-                // Use mobile: tap for XCUITest-native tap
+                org.openqa.selenium.Rectangle rect = badge.getRect();
+                int centerX = rect.getX() + rect.getWidth() / 2;
+                int centerY = rect.getY() + rect.getHeight() / 2;
                 java.util.Map<String, Object> params = new java.util.HashMap<>();
-                params.put("elementId", ((org.openqa.selenium.remote.RemoteWebElement) badge).getId());
+                params.put("x", centerX);
+                params.put("y", centerY);
                 driver.executeScript("mobile: tap", params);
                 return;
             }
