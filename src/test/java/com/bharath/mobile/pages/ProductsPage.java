@@ -76,14 +76,17 @@ public class ProductsPage {
     }
 
     /**
-     * Opens the cart. v2.7.1: the test-Cart container is not clickable;
-     * the tap target is the nearest clickable ancestor ViewGroup.
+     * Opens the cart. v2.7.1: the test-Cart container is not clickable and
+     * has no clickable ancestor/descendant with a stable locator; the tap
+     * target is the overlapping clickable ViewGroup at the same bounds.
+     * Taps the center of the test-Cart bounds via W3C Actions.
      */
     public void openCart() {
-        By clickableCart = AppiumBy.xpath(
-                "//android.view.ViewGroup[@content-desc='test-Cart']" +
-                "/ancestor::android.view.ViewGroup[@clickable='true'][1]");
-        Waits.clickable(driver, clickableCart).click();
+        WebElement cart = Waits.visible(driver, cartBadge);
+        org.openqa.selenium.Rectangle rect = cart.getRect();
+        int centerX = rect.getX() + rect.getWidth() / 2;
+        int centerY = rect.getY() + rect.getHeight() / 2;
+        Gestures.tapAt(driver, centerX, centerY);
     }
 
     /**

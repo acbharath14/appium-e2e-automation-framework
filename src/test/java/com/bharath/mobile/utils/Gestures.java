@@ -50,4 +50,19 @@ public final class Gestures {
         swipe.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
         driver.perform(List.of(swipe));
     }
+
+    /**
+     * Taps at absolute screen coordinates.
+     * Use when the tap target has no stable locator but its position is known
+     * (e.g. derived from another element's bounds).
+     */
+    public static void tapAt(AppiumDriver driver, int x, int y) {
+        PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
+        Sequence tap = new Sequence(finger, 1);
+        tap.addAction(finger.createPointerMove(
+                Duration.ZERO, PointerInput.Origin.viewport(), x, y));
+        tap.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
+        tap.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+        driver.perform(List.of(tap));
+    }
 }

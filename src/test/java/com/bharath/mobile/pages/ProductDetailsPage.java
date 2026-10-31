@@ -35,8 +35,9 @@ public class ProductDetailsPage {
 
     /**
      * The product name shown on the details screen.
-     * v2.7.1: the title TextView carries no test-id; this returns the first
-     * non-empty TextView that is not a dollar price.
+     * v2.7.1: the title TextView carries no test-id. Returns the first
+     * non-empty TextView that is not a dollar price and not an all-uppercase
+     * button label (e.g. "BACK TO PRODUCTS").
      */
     public String name() {
         Waits.visible(driver, detailsMarker);
@@ -44,9 +45,18 @@ public class ProductDetailsPage {
                 driver.findElements(AppiumBy.xpath("//android.widget.TextView"));
         for (WebElement t : texts) {
             String s = t.getText();
-            if (s != null && !s.trim().isEmpty() && !s.trim().startsWith("$")) {
-                return s.trim();
+            if (s == null) {
+                continue;
             }
+            s = s.trim();
+            if (s.isEmpty() || s.startsWith("$")) {
+                continue;
+            }
+            // Skip all-uppercase button labels like "BACK TO PRODUCTS"
+            if (s.equals(s.toUpperCase())) {
+                continue;
+            }
+            return s;
         }
         return "";
     }
