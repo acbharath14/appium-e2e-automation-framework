@@ -146,8 +146,10 @@ def main():
         print(f"Preflight FAILED: {len(failures)} check(s) need attention: "
               + ", ".join(failures))
         return 1
-    print("Preflight green — run:  mvn test            # Android emulator")
-    print("                    mvn test -Dplatform=ios # iOS simulator (macOS)")
+    print("Preflight green. To run the Android suite:")
+    print("    mvn test")
+    print("For iOS (macOS only):")
+    print("    mvn test -Dplatform=ios")
     return 0
 
 
