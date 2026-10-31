@@ -55,7 +55,6 @@ public final class Gestures {
      * Taps at absolute screen coordinates.
      * Use when the tap target has no stable locator but its position is known
      * (e.g. derived from another element's bounds).
-     * Includes a 100ms press duration for XCUITest reliability.
      */
     public static void tapAt(AppiumDriver driver, int x, int y) {
         PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
@@ -63,8 +62,6 @@ public final class Gestures {
         tap.addAction(finger.createPointerMove(
                 Duration.ZERO, PointerInput.Origin.viewport(), x, y));
         tap.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
-        tap.addAction(finger.createPointerMove(
-                Duration.ofMillis(100), PointerInput.Origin.viewport(), x, y));
         tap.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
         driver.perform(List.of(tap));
     }
