@@ -127,22 +127,37 @@ public class ProductsPage {
                 + (Platform.isIOS() ? "[1]" : "[@clickable='true'][1]");
         // The title TextView often lands in the tree before its clickable
         // wrapper is attached (React Native render timing after a scroll), so
-        // a single-shot findElement can race it — this passed on a warm
-        // emulator and failed on a cold one. Poll until the ancestor appears,
-        // re-finding the title on every poll so a half-rendered row can't go
-        // stale underneath us.
-        WebElement detailsButton = Waits.until(driver, d -> {
-            for (WebElement t : d.findElements(productNames)) {
-                if (productName.equals(t.getText())) {
-                    try {
-                        return t.findElement(AppiumBy.xpath(ancestorXPath));
-                    } catch (org.openqa.selenium.NoSuchElementException e) {
-                        return null; // wrapper not attached yet — keep polling
+        // a single-shot findElement can race it. Poll until the ancestor
+        // appears, re-finding the title on every poll so a half-rendered row
+        // can't go stale underneath us.
+        WebElement detailsButton;
+        try {
+            detailsButton = Waits.until(driver, d -> {
+                for (WebElement t : d.findElements(productNames)) {
+                    if (productName.equals(t.getText())) {
+                        try {
+                            return t.findElement(AppiumBy.xpath(ancestorXPath));
+                        } catch (org.openqa.selenium.NoSuchElementException e) {
+                            return null; // wrapper not attached yet — keep polling
+                        }
                     }
                 }
+                return null;
+            });
+        } catch (org.openqa.selenium.TimeoutException e) {
+            // Dump the tree so a failure carries its own evidence: the dump
+            // shows the title's real ancestor chain at failure time.
+            String dumpPath = "target/product-details-timeout.xml";
+            try {
+                java.nio.file.Files.writeString(
+                        java.nio.file.Path.of(dumpPath), driver.getPageSource());
+            } catch (Exception io) {
+                dumpPath = "dump failed: " + io.getMessage();
             }
-            return null;
-        });
+            throw new org.openqa.selenium.TimeoutException(
+                    "clickable ancestor for '" + productName
+                            + "' never appeared; page source at " + dumpPath, e);
+        }
         detailsButton.click();
     }
 
