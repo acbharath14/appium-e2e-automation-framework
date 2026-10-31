@@ -153,10 +153,12 @@ for a private repo. `DriverFactory` still has a `-Dplatform=browserstack`
 mode for manual cloud runs (credentials via `-Dbrowserstack.user/key`,
 app via `-Dbrowserstack.app=bs://...`).
 
-**iOS stays local-only**, deliberately: macOS runners bill at 10x per minute
-and every run would download the ~9GB simulator runtime, for a suite that is
-9 passing tests plus 6 intentional skips (the app's own accessibility gaps).
-Run it locally with `mvn test -Dplatform=ios`.
+**iOS runs in CI too**, on the same self-hosted runner: no per-minute
+billing and the iOS 18.5 simulator runtime is already installed, so the
+old hosted-macOS objections don't apply. The `ios` job queues behind the
+`android` job on the single runner. Expect 9 passed, 6 intentionally
+skipped (the app's own accessibility gaps — see "iOS limitations (v2.7.1)"
+below); the xcuitest driver boots the iPhone 16 simulator itself.
 
 There is no GitLab CI for this repo, also deliberately: GitHub Actions covers
 the suite, and the iMac's GitLab runner is a Docker executor — an Android
