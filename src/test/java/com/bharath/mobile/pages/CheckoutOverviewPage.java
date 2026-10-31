@@ -63,7 +63,7 @@ public class CheckoutOverviewPage {
     }
 
     private void scrollToButton(By button) {
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 5; i++) {
             if (!driver.findElements(button).isEmpty()) {
                 return;
             }

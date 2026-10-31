@@ -12,7 +12,7 @@ public class CheckoutCompletePage {
 
     private final AppiumDriver driver;
 
-    private final By thankYouHeader = AppiumBy.accessibilityId("test-THANK YOU FOR YOU ORDER");
+    private final By thankYouHeader = AppiumBy.accessibilityId("test-THANK YOU FOR YOUR ORDER");
     private final By backHomeButton = AppiumBy.accessibilityId("test-BACK HOME");
 
     public CheckoutCompletePage(AppiumDriver driver) {
