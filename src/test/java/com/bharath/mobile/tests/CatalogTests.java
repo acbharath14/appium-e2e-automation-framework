@@ -4,9 +4,13 @@ import com.bharath.mobile.base.BaseTest;
 import com.bharath.mobile.pages.LoginPage;
 import com.bharath.mobile.pages.ProductDetailsPage;
 import com.bharath.mobile.pages.ProductsPage;
+import com.bharath.mobile.utils.Platform;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -14,6 +18,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Catalog behavior: listing, details, and scrolling.
  */
+@Epic("Swag Labs Mobile")
+@Feature("Catalog")
 class CatalogTests extends BaseTest {
 
     @BeforeEach
@@ -33,6 +39,10 @@ class CatalogTests extends BaseTest {
     @Test
     @DisplayName("opens the product details screen when a product is tapped")
     void tappingProductOpensDetails() {
+        // iOS: XCUITest does not support ancestor:: axis for finding the
+        // tappable product container.
+        Assumptions.assumeFalse(Platform.isIOS(),
+                "iOS product-details navigation needs ancestor:: (unsupported)");
         ProductsPage products = new ProductsPage(driver);
         products.openProductDetails("Sauce Labs Backpack");
 

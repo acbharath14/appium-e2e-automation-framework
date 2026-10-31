@@ -7,6 +7,8 @@ import com.bharath.mobile.pages.CheckoutInfoPage;
 import com.bharath.mobile.pages.CheckoutOverviewPage;
 import com.bharath.mobile.pages.LoginPage;
 import com.bharath.mobile.pages.ProductsPage;
+import com.bharath.mobile.utils.Platform;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +22,9 @@ class CheckoutTests extends BaseTest {
 
     @BeforeEach
     void loginAndAddItem() {
+        // iOS: cart button has accessible=false, XCUITest cannot tap it.
+        Assumptions.assumeFalse(Platform.isIOS(),
+                "iOS cart navigation not automatable (button accessible=false)");
         new LoginPage(driver).loginAs("standard_user", "secret_sauce");
         ProductsPage products = new ProductsPage(driver);
         products.addToCart("Sauce Labs Backpack");
