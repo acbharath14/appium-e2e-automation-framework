@@ -37,11 +37,11 @@ APPIUM_PORT = 4723
 failures = []
 
 
-def run(cmd, **kwargs):
+def run(cmd, timeout=120, **kwargs):
     """Run a command, returning (ok, stdout). Never raises."""
     try:
         out = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=120, **kwargs)
+            cmd, capture_output=True, text=True, timeout=timeout, **kwargs)
         return out.returncode == 0, out.stdout.strip()
     except Exception as e:  # missing binary, timeout, ...
         return False, str(e)
@@ -94,9 +94,14 @@ def main():
         ok, out = run(["appium", "driver", "list", "--installed"])
         has = ok and driver in out
         if not has and shutil.which("appium"):
-            print(f"  installing driver {driver}...")
-            ok, _ = run(["appium", "driver", "install", driver])
-            has = ok
+            print(f"  installing driver {driver} (can take a few minutes)...")
+            ok, out = run(["appium", "driver", "install", driver], timeout=600)
+            if not ok:
+                # Show the real error instead of swallowing it.
+                print(f"  driver install failed:\n{out}")
+            # Re-check the installed list rather than trusting the exit code.
+            ok2, out2 = run(["appium", "driver", "list", "--installed"])
+            has = ok2 and driver in out2
         check(f"Appium driver {driver}", has,
               f"appium driver install {driver}")
 
