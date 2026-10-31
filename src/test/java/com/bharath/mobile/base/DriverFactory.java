@@ -31,6 +31,11 @@ public final class DriverFactory {
 
     public static AppiumDriver createDriver() {
         String platform = System.getProperty("platform", "android").toLowerCase();
+        // BrowserStack is its own mode: cloud hub, bs:// app URL, no local
+        // emulator or properties file involved.
+        if (platform.equals("browserstack")) {
+            return createBrowserStackDriver();
+        }
         String serverUrl = System.getProperty("appium.server.url", "http://127.0.0.1:4723");
         Properties caps = loadProperties(platform);
 
@@ -108,6 +113,58 @@ public final class DriverFactory {
             throw e;
         } catch (Exception e) {
             throw new IllegalStateException("Failed to start Appium driver: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Driver for BrowserStack App Automate (cloud devices).
+     *
+     * <p>Run with {@code -Dplatform=browserstack} plus:
+     * <ul>
+     *   <li>{@code -Dbrowserstack.user} / {@code -Dbrowserstack.key} —
+     *       your BrowserStack username and access key. In CI these come
+     *       from the BROWSERSTACK_USERNAME / BROWSERSTACK_ACCESS_KEY
+     *       GitHub Secrets; never commit them.</li>
+     *   <li>{@code -Dbrowserstack.app=bs://...} — the app URL returned by
+     *       the BrowserStack upload API
+     *       ({@code https://api-cloud.browserstack.com/app-automate/upload}).</li>
+     * </ul>
+     */
+    private static AppiumDriver createBrowserStackDriver() {
+        String bsUser = System.getProperty("browserstack.user");
+        String bsKey = System.getProperty("browserstack.key");
+        String bsApp = System.getProperty("browserstack.app");
+        if (bsUser == null || bsUser.isBlank() || bsKey == null || bsKey.isBlank()) {
+            throw new IllegalStateException(
+                    "BrowserStack needs -Dbrowserstack.user and -Dbrowserstack.key "
+                    + "(GitHub Secrets BROWSERSTACK_USERNAME / BROWSERSTACK_ACCESS_KEY).");
+        }
+        if (bsApp == null || bsApp.isBlank() || !bsApp.startsWith("bs://")) {
+            throw new IllegalStateException(
+                    "BrowserStack needs -Dbrowserstack.app=bs://<hash> "
+                    + "(upload apps/<apk> via the BrowserStack app-automate/upload API).");
+        }
+        UiAutomator2Options options = new UiAutomator2Options()
+                .setPlatformName("Android")
+                .setAutomationName("UiAutomator2")
+                .setDeviceName("Google Pixel 7")
+                .setPlatformVersion("14.0")
+                .setApp(bsApp)
+                .setNewCommandTimeout(Duration.ofSeconds(120));
+        java.util.Map<String, Object> bstackOptions = new java.util.HashMap<>();
+        bstackOptions.put("userName", bsUser);
+        bstackOptions.put("accessKey", bsKey);
+        bstackOptions.put("projectName", "appium-e2e-automation-framework");
+        String buildName = System.getenv("GITHUB_RUN_ID");
+        bstackOptions.put("buildName",
+                buildName != null && !buildName.isBlank() ? "ci-" + buildName : "local");
+        bstackOptions.put("sessionName", "android-regression");
+        options.setCapability("bstack:options", bstackOptions);
+        try {
+            return new AndroidDriver(
+                    new URI("https://hub-cloud.browserstack.com/wd/hub").toURL(), options);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to start BrowserStack driver: " + e.getMessage(), e);
         }
     }
 
