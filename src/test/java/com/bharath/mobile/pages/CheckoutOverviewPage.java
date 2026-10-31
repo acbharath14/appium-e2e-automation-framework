@@ -52,24 +52,26 @@ public class CheckoutOverviewPage {
 
     /** Scrolls the button into view (it sits below the fold) then taps it. */
     public void finish() {
-        scrollToButton(finishButton);
+        revealBottomButtons();
         Waits.clickable(driver, finishButton).click();
     }
 
     /** Scrolls the button into view (it sits below the fold) then taps it. */
     public void cancel() {
-        scrollToButton(cancelButton);
+        revealBottomButtons();
         Waits.clickable(driver, cancelButton).click();
     }
 
-    private void scrollToButton(By button) {
-        for (int i = 0; i < 8; i++) {
-            if (!driver.findElements(button).isEmpty()) {
-                return;
-            }
+    /**
+     * Swipes up three times to bring the bottom buttons into the viewport.
+     * Unconditional (no findElements check) — the clickable wait that follows
+     * handles timing; the check-then-scroll loop proved flaky for CANCEL.
+     */
+    private void revealBottomButtons() {
+        for (int i = 0; i < 3; i++) {
             Gestures.scrollDown(driver);
             try {
-                Thread.sleep(1000);
+                Thread.sleep(800);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return;
