@@ -74,6 +74,19 @@ public final class DriverFactory {
                     if (appWaitActivity != null && !appWaitActivity.isBlank()) {
                         options.setAppWaitActivity(appWaitActivity);
                     }
+                    // Generous adb timeouts: a cold/slow emulator (CI especially)
+                    // can take well over the 20s defaults to answer adb.
+                    String adbExecTimeout = caps.getProperty("appium:adbExecTimeout");
+                    if (adbExecTimeout != null && !adbExecTimeout.isBlank()) {
+                        options.setAdbExecTimeout(Duration.ofMillis(
+                                Long.parseLong(adbExecTimeout)));
+                    }
+                    String serverInstallTimeout =
+                            caps.getProperty("appium:uiautomator2ServerInstallTimeout");
+                    if (serverInstallTimeout != null && !serverInstallTimeout.isBlank()) {
+                        options.setUiautomator2ServerInstallTimeout(Duration.ofMillis(
+                                Long.parseLong(serverInstallTimeout)));
+                    }
                     return new AndroidDriver(new URI(serverUrl).toURL(), options);
                 }
                 case "ios": {
