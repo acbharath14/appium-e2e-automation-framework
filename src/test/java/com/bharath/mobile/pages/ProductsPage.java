@@ -99,25 +99,19 @@ public class ProductsPage {
     public void openCart() {
         WebElement cart = Waits.visible(driver, cartBadge);
         if (Platform.isIOS()) {
-            // Find the accessible badge child and tap via mobile: tap (XCUITest-native)
-            List<WebElement> accessibleChildren = cart.findElements(AppiumBy.xpath(
-                    ".//" + Platform.container() + "[@accessible='true']"));
-            if (!accessibleChildren.isEmpty()) {
-                WebElement badge = accessibleChildren.get(0);
-                org.openqa.selenium.Rectangle rect = badge.getRect();
-                int centerX = rect.getX() + rect.getWidth() / 2;
-                int centerY = rect.getY() + rect.getHeight() / 2;
-                java.util.Map<String, Object> params = new java.util.HashMap<>();
-                params.put("x", centerX);
-                params.put("y", centerY);
-                driver.executeScript("mobile: tap", params);
-                return;
-            }
-            // Fallback: W3C tap at cart center
-            org.openqa.selenium.Rectangle rect = cart.getRect();
+            // Find the wrapper (Other containing test-Cart) and tap its center
+            // via mobile: tap (XCUITest-native). W3C Actions tap does not
+            // trigger navigation on this element.
+            WebElement wrapper = driver.findElement(AppiumBy.xpath(
+                    "//" + Platform.container() + "[./" + Platform.container()
+                            + "[@name='test-Cart']]"));
+            org.openqa.selenium.Rectangle rect = wrapper.getRect();
             int centerX = rect.getX() + rect.getWidth() / 2;
             int centerY = rect.getY() + rect.getHeight() / 2;
-            Gestures.tapAt(driver, centerX, centerY);
+            java.util.Map<String, Object> params = new java.util.HashMap<>();
+            params.put("x", centerX);
+            params.put("y", centerY);
+            driver.executeScript("mobile: tap", params);
             return;
         }
         org.openqa.selenium.Rectangle rect = cart.getRect();
