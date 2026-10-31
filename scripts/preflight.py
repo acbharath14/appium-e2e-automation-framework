@@ -13,6 +13,12 @@ Checks, in order:
   4. The Pixel_7_API_34 AVD exists (prints the creation command if not)
   5. Swag Labs app binaries in apps/ (downloads them if absent)
   6. An Appium server listening on localhost:4723 (starts one if missing)
+
+CI mode (--ci): the GitHub workflow runs on reactivecircus/android-emulator-runner,
+which provides its own emulator AFTER this script runs. So --ci skips the
+ANDROID_HOME check, the AVD check, the xcuitest driver install (Linux runners
+can't run iOS simulators), and starting the Appium server — the emulator step
+starts the server itself so it inherits the runner's ANDROID_SDK_ROOT.
 """
 
 import json
@@ -71,7 +77,11 @@ def java_version_ok():
 
 
 def main():
-    print("Appium framework preflight")
+    ci_mode = "--ci" in sys.argv[1:]
+    if ci_mode:
+        print("Appium framework preflight (CI mode: emulator provided by runner)")
+    else:
+        print("Appium framework preflight")
     print("==========================")
     os.makedirs(APPS_DIR, exist_ok=True)
 
@@ -92,7 +102,10 @@ def main():
             print("  npm install failed; rerun preflight after fixing npm")
     check("Appium server", shutil.which("appium") is not None,
           "npm install -g appium")
-    for driver in ("uiautomator2", "xcuitest"):
+    # CI runners are Linux: the xcuitest driver can never run there, so don't
+    # waste minutes installing it.
+    drivers = ("uiautomator2",) if ci_mode else ("uiautomator2", "xcuitest")
+    for driver in drivers:
         ok, out = run(["appium", "driver", "list", "--installed"])
         has = ok and driver in out
         if not has and shutil.which("appium"):
@@ -107,27 +120,34 @@ def main():
         check(f"Appium driver {driver}", has,
               f"appium driver install {driver}")
 
-    # 3. Android SDK
+    # 3. Android SDK (skipped in CI: the emulator runner provides it after us)
     android_home = os.environ.get("ANDROID_HOME", "")
     emulator = os.path.join(android_home, "emulator", "emulator")
-    check("ANDROID_HOME with emulator", bool(android_home)
-          and os.path.isfile(emulator),
-          "install Android Studio or cmdline-tools and export ANDROID_HOME")
+    if ci_mode:
+        print("[skip] ANDROID_HOME with emulator (CI: provided by runner)")
+        print(f"[skip] AVD {AVD_NAME} (CI: provided by runner)")
+    else:
+        check("ANDROID_HOME with emulator", bool(android_home)
+              and os.path.isfile(emulator),
+              "install Android Studio or cmdline-tools and export ANDROID_HOME")
 
-    # 4. AVD exists
-    avd_ok = False
-    if os.path.isfile(emulator):
-        ok, out = run([emulator, "-list-avds"])
-        avd_ok = ok and AVD_NAME in out
-    check(f"AVD {AVD_NAME}", avd_ok,
-          f'avdmanager create avd -n {AVD_NAME} -k '
-          '"system-images;android-34;google_apis;x86_64" -d "pixel_7"')
+        # 4. AVD exists
+        avd_ok = False
+        if os.path.isfile(emulator):
+            ok, out = run([emulator, "-list-avds"])
+            avd_ok = ok and AVD_NAME in out
+        check(f"AVD {AVD_NAME}", avd_ok,
+              f'avdmanager create avd -n {AVD_NAME} -k '
+              '"system-images;android-34;google_apis;x86_64" -d "pixel_7"')
 
     # 5. Sample app binaries (downloaded, never committed)
     download_apps()
 
-    # 6. Appium server listening
-    if not port_open("127.0.0.1", APPIUM_PORT):
+    # 6. Appium server listening (skipped in CI: the emulator step starts it
+    # itself so it inherits the runner's ANDROID_SDK_ROOT)
+    if ci_mode:
+        print(f"[skip] Appium server on :{APPIUM_PORT} (CI: started in emulator step)")
+    elif not port_open("127.0.0.1", APPIUM_PORT):
         if shutil.which("appium"):
             print(f"  starting Appium server on :{APPIUM_PORT}...")
             subprocess.Popen(["appium", "--port", str(APPIUM_PORT)],
@@ -137,9 +157,10 @@ def main():
                 if port_open("127.0.0.1", APPIUM_PORT):
                     break
                 time.sleep(1)
-    check(f"Appium server on :{APPIUM_PORT}",
-          port_open("127.0.0.1", APPIUM_PORT),
-          f"appium --port {APPIUM_PORT}")
+    if not ci_mode:
+        check(f"Appium server on :{APPIUM_PORT}",
+              port_open("127.0.0.1", APPIUM_PORT),
+              f"appium --port {APPIUM_PORT}")
 
     print()
     if failures:
