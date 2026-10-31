@@ -92,19 +92,19 @@ public class ProductsPage {
      * clickable ancestor/descendant with a stable locator; the tap target is
      * the overlapping clickable ViewGroup at the same bounds. Taps the center
      * of the test-Cart bounds via W3C Actions.
-     * v2.7.1 iOS: test-Cart is accessible=false so direct tap fails, and
-     * XCUITest does not support parent:: axis. Use mobile: tap on the
-     * accessible badge child (XCUITest-native tap).
+     * v2.7.1 iOS: the cart button has accessible=false and XCUITest cannot tap
+     * it (7 methods tried). The app registers the swaglabs:// URL scheme with
+     * a 'cart' path (React Navigation deep link, verified in main.jsbundle),
+     * so navigate via mobile: deepLink instead.
      */
     public void openCart() {
         WebElement cart = Waits.visible(driver, cartBadge);
         if (Platform.isIOS()) {
-            // Tap test-Cart's center via W3C Actions with press duration.
-            // mobile: tap does not trigger navigation on this element.
-            org.openqa.selenium.Rectangle rect = cart.getRect();
-            int centerX = rect.getX() + rect.getWidth() / 2;
-            int centerY = rect.getY() + rect.getHeight() / 2;
-            Gestures.tapAt(driver, centerX, centerY);
+            // Deep link to cart: bypasses the non-accessible cart button
+            java.util.Map<String, Object> params = new java.util.HashMap<>();
+            params.put("url", "swaglabs://cart");
+            params.put("bundleId", "com.saucelabs.SwagLabsMobileApp");
+            driver.executeScript("mobile: deepLink", params);
             return;
         }
         org.openqa.selenium.Rectangle rect = cart.getRect();
