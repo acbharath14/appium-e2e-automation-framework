@@ -19,6 +19,10 @@ which provides its own emulator AFTER this script runs. So --ci skips the
 ANDROID_HOME check, the AVD check, the xcuitest driver install (Linux runners
 can't run iOS simulators), and starting the Appium server — the emulator step
 starts the server itself so it inherits the runner's ANDROID_SDK_ROOT.
+
+App-only mode (--app-only): for cloud-device CI (BrowserStack), where the
+tests talk directly to the cloud hub and no local Appium server, drivers,
+or emulator are needed. Only ensures the sample app binaries exist.
 """
 
 import json
@@ -78,54 +82,59 @@ def java_version_ok():
 
 def main():
     ci_mode = "--ci" in sys.argv[1:]
-    if ci_mode:
+    app_only = "--app-only" in sys.argv[1:]
+    if app_only:
+        print("Appium framework preflight (app-only mode: cloud CI)")
+    elif ci_mode:
         print("Appium framework preflight (CI mode: emulator provided by runner)")
     else:
         print("Appium framework preflight")
     print("==========================")
     os.makedirs(APPS_DIR, exist_ok=True)
 
-    # 1. Java + Maven
-    check("Java 17+", java_version_ok(),
-          "install Temurin 17: https://adoptium.net/temurin/releases/")
-    check("Maven", shutil.which("mvn") is not None,
-          "install Maven 3.9+: https://maven.apache.org/download.cgi")
+    if not app_only:
+        # 1. Java + Maven
+        check("Java 17+", java_version_ok(),
+              "install Temurin 17: https://adoptium.net/temurin/releases/")
+        check("Maven", shutil.which("mvn") is not None,
+              "install Maven 3.9+: https://maven.apache.org/download.cgi")
 
-    # 2. Node + Appium server + drivers
-    ok, out = run(["node", "--version"])
-    node_ok = ok and int(re.search(r"v(\d+)", out).group(1)) >= 20
-    check("Node.js 20+", node_ok, "install Node 20+: https://nodejs.org/")
-    if node_ok and shutil.which("appium") is None:
-        print("  installing Appium server (npm install -g appium)...")
-        ok, _ = run(["npm", "install", "-g", "appium"])
-        if not ok:
-            print("  npm install failed; rerun preflight after fixing npm")
-    check("Appium server", shutil.which("appium") is not None,
-          "npm install -g appium")
-    # CI runners are Linux: the xcuitest driver can never run there, so don't
-    # waste minutes installing it.
-    drivers = ("uiautomator2",) if ci_mode else ("uiautomator2", "xcuitest")
-    for driver in drivers:
-        ok, out = run(["appium", "driver", "list", "--installed"])
-        has = ok and driver in out
-        if not has and shutil.which("appium"):
-            print(f"  installing driver {driver} (can take a few minutes)...")
-            ok, out = run(["appium", "driver", "install", driver], timeout=600)
+        # 2. Node + Appium server + drivers
+        ok, out = run(["node", "--version"])
+        node_ok = ok and int(re.search(r"v(\d+)", out).group(1)) >= 20
+        check("Node.js 20+", node_ok, "install Node 20+: https://nodejs.org/")
+        if node_ok and shutil.which("appium") is None:
+            print("  installing Appium server (npm install -g appium)...")
+            ok, _ = run(["npm", "install", "-g", "appium"])
             if not ok:
-                # Show the real error instead of swallowing it.
-                print(f"  driver install failed:\n{out}")
-            # Re-check the installed list rather than trusting the exit code.
-            ok2, out2 = run(["appium", "driver", "list", "--installed"])
-            has = ok2 and driver in out2
-        check(f"Appium driver {driver}", has,
-              f"appium driver install {driver}")
+                print("  npm install failed; rerun preflight after fixing npm")
+        check("Appium server", shutil.which("appium") is not None,
+              "npm install -g appium")
+        # CI runners are Linux: the xcuitest driver can never run there, so don't
+        # waste minutes installing it.
+        drivers = ("uiautomator2",) if ci_mode else ("uiautomator2", "xcuitest")
+        for driver in drivers:
+            ok, out = run(["appium", "driver", "list", "--installed"])
+            has = ok and driver in out
+            if not has and shutil.which("appium"):
+                print(f"  installing driver {driver} (can take a few minutes)...")
+                ok, out = run(["appium", "driver", "install", driver], timeout=600)
+                if not ok:
+                    # Show the real error instead of swallowing it.
+                    print(f"  driver install failed:\n{out}")
+                # Re-check the installed list rather than trusting the exit code.
+                ok2, out2 = run(["appium", "driver", "list", "--installed"])
+                has = ok2 and driver in out2
+            check(f"Appium driver {driver}", has,
+                  f"appium driver install {driver}")
 
-    # 3. Android SDK (skipped in CI: the emulator runner provides it after us)
+    # 3. Android SDK (skipped in CI: the emulator runner provides it after us;
+    # skipped in app-only mode: cloud devices need no local SDK)
     android_home = os.environ.get("ANDROID_HOME", "")
     emulator = os.path.join(android_home, "emulator", "emulator")
-    if ci_mode:
-        print("[skip] ANDROID_HOME with emulator (CI: provided by runner)")
-        print(f"[skip] AVD {AVD_NAME} (CI: provided by runner)")
+    if ci_mode or app_only:
+        print("[skip] ANDROID_HOME with emulator (not needed in this mode)")
+        print(f"[skip] AVD {AVD_NAME} (not needed in this mode)")
     else:
         check("ANDROID_HOME with emulator", bool(android_home)
               and os.path.isfile(emulator),
@@ -144,8 +153,11 @@ def main():
     download_apps()
 
     # 6. Appium server listening (skipped in CI: the emulator step starts it
-    # itself so it inherits the runner's ANDROID_SDK_ROOT)
-    if ci_mode:
+    # itself so it inherits the runner's ANDROID_SDK_ROOT; skipped in
+    # app-only mode: cloud CI needs no local server at all)
+    if app_only:
+        print(f"[skip] Appium server on :{APPIUM_PORT} (app-only: not needed)")
+    elif ci_mode:
         print(f"[skip] Appium server on :{APPIUM_PORT} (CI: started in emulator step)")
     elif not port_open("127.0.0.1", APPIUM_PORT):
         if shutil.which("appium"):
@@ -157,7 +169,7 @@ def main():
                 if port_open("127.0.0.1", APPIUM_PORT):
                     break
                 time.sleep(1)
-    if not ci_mode:
+    if not ci_mode and not app_only:
         check(f"Appium server on :{APPIUM_PORT}",
               port_open("127.0.0.1", APPIUM_PORT),
               f"appium --port {APPIUM_PORT}")
