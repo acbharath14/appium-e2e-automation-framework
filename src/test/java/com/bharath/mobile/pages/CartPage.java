@@ -12,7 +12,8 @@ public class CartPage {
 
     private final AppiumDriver driver;
 
-    private final By header = AppiumBy.accessibilityId("test-YOUR CART");
+    // v2.7.1: the cart header is test-Cart Content (verified via uiautomator dump)
+    private final By header = AppiumBy.accessibilityId("test-Cart Content");
     private final By checkoutButton = AppiumBy.accessibilityId("test-CHECKOUT");
     private final By removeButton = AppiumBy.accessibilityId("test-REMOVE");
     private final By cartItem = AppiumBy.accessibilityId("test-Item");

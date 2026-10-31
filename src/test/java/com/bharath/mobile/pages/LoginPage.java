@@ -4,6 +4,9 @@ import com.bharath.mobile.utils.Waits;
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.AppiumDriver;
 import org.openqa.selenium.By;
+import org.openqa.selenium.WebElement;
+
+import java.util.List;
 
 /**
  * The Swag Labs login screen.
@@ -37,8 +40,18 @@ public class LoginPage {
         Waits.clickable(driver, loginButton).click();
     }
 
-    /** The text of the login error banner, for negative-case assertions. */
+    /**
+     * The text of the login error banner, for negative-case assertions.
+     * v2.7.1: test-Error message is a container with empty text; the actual
+     * message is in a child TextView (verified via uiautomator dump).
+     */
     public String errorText() {
-        return Waits.visible(driver, errorMessage).getText();
+        WebElement container = Waits.visible(driver, errorMessage);
+        List<WebElement> textElements =
+                container.findElements(AppiumBy.xpath(".//android.widget.TextView"));
+        if (textElements.isEmpty()) {
+            return "";
+        }
+        return textElements.get(0).getText();
     }
 }

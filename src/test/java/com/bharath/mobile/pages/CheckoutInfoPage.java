@@ -4,6 +4,9 @@ import com.bharath.mobile.utils.Waits;
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.AppiumDriver;
 import org.openqa.selenium.By;
+import org.openqa.selenium.WebElement;
+
+import java.util.List;
 
 /**
  * The "Checkout: Your Information" form.
@@ -36,7 +39,16 @@ public class CheckoutInfoPage {
         Waits.clickable(driver, continueButton).click();
     }
 
+    /**
+     * v2.7.1: test-Error message is a container; the text is in a child TextView.
+     */
     public String errorText() {
-        return Waits.visible(driver, errorMessage).getText();
+        WebElement container = Waits.visible(driver, errorMessage);
+        List<WebElement> textElements =
+                container.findElements(AppiumBy.xpath(".//android.widget.TextView"));
+        if (textElements.isEmpty()) {
+            return "";
+        }
+        return textElements.get(0).getText();
     }
 }
