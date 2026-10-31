@@ -99,13 +99,9 @@ public class ProductsPage {
     public void openCart() {
         WebElement cart = Waits.visible(driver, cartBadge);
         if (Platform.isIOS()) {
-            // Find the wrapper (Other containing test-Cart) and tap its center
-            // via mobile: tap (XCUITest-native). W3C Actions tap does not
-            // trigger navigation on this element.
-            WebElement wrapper = driver.findElement(AppiumBy.xpath(
-                    "//" + Platform.container() + "[./" + Platform.container()
-                            + "[@name='test-Cart']]"));
-            org.openqa.selenium.Rectangle rect = wrapper.getRect();
+            // Tap test-Cart's center via mobile: tap (XCUITest-native).
+            // W3C Actions tap does not trigger navigation on this element.
+            org.openqa.selenium.Rectangle rect = cart.getRect();
             int centerX = rect.getX() + rect.getWidth() / 2;
             int centerY = rect.getY() + rect.getHeight() / 2;
             java.util.Map<String, Object> params = new java.util.HashMap<>();
