@@ -92,21 +92,19 @@ public class ProductsPage {
      * clickable ancestor/descendant with a stable locator; the tap target is
      * the overlapping clickable ViewGroup at the same bounds. Taps the center
      * of the test-Cart bounds via W3C Actions.
-     * v2.7.1 iOS: test-Cart has an accessible child (accessible="true") that
-     * can be tapped directly; coordinate tap is unreliable on iOS.
+     * v2.7.1 iOS: the accessible child of test-Cart is just the badge label,
+     * not the tap target. The parent wrapper (larger bounds) is the touch
+     * target; tap its center via W3C Actions.
      */
     public void openCart() {
         WebElement cart = Waits.visible(driver, cartBadge);
         if (Platform.isIOS()) {
-            // Tap the accessible badge child directly
-            List<WebElement> accessibleChildren = cart.findElements(
-                    AppiumBy.xpath(".//" + Platform.container() + "[@accessible='true']"));
-            if (!accessibleChildren.isEmpty()) {
-                accessibleChildren.get(0).click();
-                return;
-            }
-            // Fallback: tap the container itself
-            cart.click();
+            // Tap the center of the parent wrapper (the touch target)
+            WebElement wrapper = cart.findElement(AppiumBy.xpath("./parent::" + Platform.container()));
+            org.openqa.selenium.Rectangle rect = wrapper.getRect();
+            int centerX = rect.getX() + rect.getWidth() / 2;
+            int centerY = rect.getY() + rect.getHeight() / 2;
+            Gestures.tapAt(driver, centerX, centerY);
             return;
         }
         org.openqa.selenium.Rectangle rect = cart.getRect();
