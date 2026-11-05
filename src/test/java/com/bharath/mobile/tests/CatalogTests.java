@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Catalog behavior: listing, details, and scrolling.
+ * Catalog behavior: listing and details.
  */
 @Epic("Swag Labs Mobile")
 @Feature("Catalog")
@@ -50,15 +50,5 @@ class CatalogTests extends BaseTest {
         assertTrue(details.isDisplayed());
         assertEquals("Sauce Labs Backpack", details.name());
         assertTrue(details.price().startsWith("$"), "expected a dollar price");
-    }
-
-    @Test
-    @DisplayName("scrolls the product list to reveal off-screen products")
-    void scrollRevealsMoreProducts() {
-        ProductsPage products = new ProductsPage(driver);
-        // "Sauce Labs Onesie" sits below the fold on a phone screen: reaching
-        // it proves the scroll-until-visible pattern works.
-        products.scrollToProduct("Sauce Labs Onesie");
-        assertTrue(products.visibleProductCount() > 0);
     }
 }

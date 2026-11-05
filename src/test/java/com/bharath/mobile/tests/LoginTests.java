@@ -5,12 +5,14 @@ import com.bharath.mobile.pages.LoginPage;
 import com.bharath.mobile.pages.ProductsPage;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Login behavior: the happy path and the two credential failures.
+ * Login behavior: the happy path and the credential failures.
  *
  * <p>Swag Labs credentials mirror the saucedemo web app: standard_user /
  * secret_sauce is valid, locked_out_user is rejected.
@@ -29,22 +31,16 @@ class LoginTests extends BaseTest {
                 "expected the products list after a valid login");
     }
 
-    @Test
-    @DisplayName("shows an error message for a wrong password")
-    void wrongPasswordShowsError() {
+    @ParameterizedTest(name = "rejected: {0} / {1}")
+    @CsvSource({
+        "standard_user, not-the-password, Username and password do not match any user in this service.",
+        "locked_out_user, secret_sauce, 'Sorry, this user has been locked out.'"
+    })
+    @DisplayName("shows the exact error message for rejected credentials")
+    void invalidCredentialsShowError(String username, String password, String expectedMessage) {
         LoginPage login = new LoginPage(driver);
-        login.loginAs("standard_user", "not-the-password");
+        login.loginAs(username, password);
 
-        assertEquals("Username and password do not match any user in this service.",
-                login.errorText());
-    }
-
-    @Test
-    @DisplayName("shows an error message for the locked-out user")
-    void lockedOutUserShowsError() {
-        LoginPage login = new LoginPage(driver);
-        login.loginAs("locked_out_user", "secret_sauce");
-
-        assertEquals("Sorry, this user has been locked out.", login.errorText());
+        assertEquals(expectedMessage, login.errorText());
     }
 }
