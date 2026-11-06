@@ -9,6 +9,8 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
 
@@ -27,23 +29,17 @@ class CartTests extends BaseTest {
         new LoginPage(driver).loginAs("standard_user", "secret_sauce");
     }
 
-    @Test
-    @DisplayName("adds one product to the cart and the badge shows 1")
-    void addOneProductBadgeShowsOne() {
-        ProductsPage products = new ProductsPage(driver);
-        products.addToCart("Sauce Labs Backpack");
-
-        assertEquals(1, products.cartBadgeCount());
-    }
-
-    @Test
+    @ParameterizedTest(name = "adding {0} product(s) shows a badge of {1}")
+    @CsvSource({"1, 1", "2, 2"})
     @DisplayName("cart badge count matches the number of added products")
-    void badgeMatchesAddedCount() {
+    void cartBadgeReflectsAddedCount(int productCount, int expectedBadge) {
         ProductsPage products = new ProductsPage(driver);
-        products.addToCart("Sauce Labs Backpack");
-        products.addToCart("Sauce Labs Bike Light");
+        String[] names = {"Sauce Labs Backpack", "Sauce Labs Bike Light"};
+        for (int i = 0; i < productCount; i++) {
+            products.addToCart(names[i]);
+        }
 
-        assertEquals(2, products.cartBadgeCount());
+        assertEquals(expectedBadge, products.cartBadgeCount());
     }
 
     @Test
